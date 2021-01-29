@@ -1,23 +1,31 @@
+import os
+import pickle
 import argparse
+import random
+import numpy as np
 
 from data import read_csv, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
-from genetics import initialize_population, crossover, mutate
-from clustering import Metric, cluster_data, compute_fmi
+from genetics import initialize_population, crossover, mutate, k_tounament, compute_fitness
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, choices=[BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET], help="Dataset name")
-    parser.add_argument('--train_csv_path', type=str, help="Path to csv file containing training data")
-    parser.add_argument('--test_csv_path', type=str, help="Path to csv file containing test data")
-    parser.add_argument('--population_size', type=str, help="Amount of functions in the population")
-    parser.add_argument('--generations', type=int, help="Number of generations to execute")
-    parser.add_argument('--function_tree_size', type=int, help="Maximum height of each function tree")
-    parser.add_argument('--crossover_prob', type=float, help="Probability associated with the crossover operator")
-    parser.add_argument('--mutation_prob', type=float, help="Probability associated with the mutation operator")
-    parser.add_argument('--tournament_k', type=int, help="Number of solutions selected for each tournament during selection stage")
+    parser.add_argument('--dataset', type=str, required=True, choices=[BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET], help="Dataset name")
+    parser.add_argument('--train_csv_path', type=str, required=True, help="Path to csv file containing training data")
+    parser.add_argument('--test_csv_path', type=str, required=True, help="Path to csv file containing test data")
+    parser.add_argument('--output_path', type=str, default="out/", help="Path to save output")
+    parser.add_argument('--population_size', type=int, default=100, help="Amount of functions in the population")
+    parser.add_argument('--generations', type=int, default=100, help="Number of generations to execute")
+    parser.add_argument('--function_tree_size', type=int, default=7, help="Maximum height of each function tree")
+    parser.add_argument('--crossover_prob', type=float, default=0.9, help="Probability associated with the crossover operator")
+    parser.add_argument('--mutation_prob', type=float, default=0.05, help="Probability associated with the mutation operator")
+    parser.add_argument('--tournament_k', type=int, default=5, help="Number of solutions selected for each tournament during selection stage")
     parser.add_argument('--elitism', action='store_true', help="Use elitism")
     args = parser.parse_args()
 
+    if not os.path.exists(args.output_path):
+        os.mkdir(args.output_path)
+
+    # Read train and test data
     train_data = read_csv(args.train_csv_path)
     test_data = read_csv(args.test_csv_path)
 
@@ -37,14 +45,92 @@ def main():
     num_classes = len(train_y.unique())
     num_variables = train_X.shape[1]
 
-    pop = initialize_population(10, 7, num_variables)
+    history = {}
+    history['max_fitness'] = []
+    history['avg_fitness'] = []
+    history['min_fitness'] = []
+    history['children_better_than_parents'] = []
+    history['children_worse_than_parents'] = []
 
-    metric = Metric(pop[3])
+    # Initialize population with random solutions (Ramped half-and-half)
+    population = initialize_population(args.population_size, args.function_tree_size, num_variables)
 
-    clusters = cluster_data(train_X, num_classes, metric)
-    print(compute_fmi(num_classes, clusters, train_y))
+    # Calculate initial population fitness
+    fitness_population = []
+    for tree in population:
+        tree_fitness = compute_fitness(tree, train_X, train_y, num_classes)
+        fitness_population.append(tree_fitness)
+    
+    # Evolutionary Loop
+    for generation in range(args.generations):
+        children = []
+        fitness_children = []
+        children_better_than_parents = 0
+        children_worse_than_parents = 0
+        # Generate Children
+        while len(children) < args.population_size:
+            # Parent Selection
+            p1, fitness_p1 = k_tounament(population, fitness_population, args.tournament_k)
+            p2, fitness_p2 = k_tounament(population, fitness_population, args.tournament_k)
 
+            avg_parent_fitness = (fitness_p1 + fitness_p2)/2
+            
+            # Crossover
+            if random.random() < args.crossover_prob:
+                c1, c2 = crossover(p1, p2)
 
+                # Calculate children fitness
+                fitness_c1 = compute_fitness(c1, train_X, train_y, num_classes)
+                fitness_c2 = compute_fitness(c2, train_X, train_y, num_classes)
+
+                if fitness_c1 < avg_parent_fitness:
+                    children_worse_than_parents += 1
+                else:
+                    children_better_than_parents += 1
+                if fitness_c2 < avg_parent_fitness:
+                    children_worse_than_parents += 1
+                else:
+                    children_better_than_parents += 1
+
+                children.append(c1)
+                children.append(c2)
+                fitness_children.append(fitness_c1)
+                fitness_children.append(fitness_c2)
+        
+        # Mutation (mutate children)
+        for i, child in enumerate(children):
+            if random.random() < args.mutation_prob:
+                child = mutate(child, num_variables, args.function_tree_size)
+                fitness_child = compute_fitness(child, train_X, train_y, num_classes)
+                children[i] = child
+                fitness_children[i] = fitness_child
+        
+        # Update population
+        if args.elitism:
+            best_parent_i = np.argmax(fitness_population)
+            worst_child_i = np.argmin(fitness_children)
+            # Enforce that the best parent stays in the population
+            children[worst_child_i] = population[best_parent_i]
+            fitness_children[worst_child_i] = fitness_population[best_parent_i]
+
+        # Change parents with children
+        population = children
+        fitness_population = fitness_children
+
+        # Compute statistics
+        max_fitness = np.max(fitness_population)
+        avg_fitness = np.average(fitness_population)
+        min_fitness = np.min(fitness_population)
+        history['max_fitness'].append(max_fitness)
+        history['avg_fitness'].append(avg_fitness)
+        history['min_fitness'].append(min_fitness)
+        history['children_better_than_parents'].append(children_better_than_parents)
+        history['children_worse_than_parents'].append(children_worse_than_parents)
+
+        print(f"Generation {generation+1}/{args.generations}: max_fitness={max_fitness:.4f} avg_fitness={avg_fitness:.4f} min_fitness={min_fitness:.4f}")
+
+    with open(os.path.join(args.output_path, f"history.pickle"), 'wb') as f:
+        pickle.dump(history, f)
 
 if __name__ == '__main__':
     main()

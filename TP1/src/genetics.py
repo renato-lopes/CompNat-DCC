@@ -2,10 +2,13 @@ import random
 
 from function_tree import FUNCTION_NODE, CONSTANT_NODE, VAR_NODE, LEFT_CHILD, RIGHT_CHILD, Tree
 from symbols import get_random_function, get_random_constant, get_random_variable
+from clustering import Metric, cluster_data, compute_fmi
+
+MAX_FITNESS=999999
 
 ###### Initialization ######
 
-def init_tree_full(height, num_variables, p_constant=0.5):
+def init_tree_full(height, num_variables, p_constant=0.0):
     if height > 0:
         root = Tree(FUNCTION_NODE, get_random_function()) # Internal nodes are only function nodes
         root.set_left_child(init_tree_full(height-1, num_variables, p_constant))
@@ -17,7 +20,7 @@ def init_tree_full(height, num_variables, p_constant=0.5):
             root = Tree(VAR_NODE, get_random_variable(num_variables))
     return root
 
-def init_tree_grow(height, num_variables, p_function=0.7, p_constant=0.2):
+def init_tree_grow(height, num_variables, p_function=0.5, p_constant=0.0):
     if height > 0:
         if random.random() < p_function: # Choose between function or terminal
             root = Tree(FUNCTION_NODE, get_random_function())
@@ -127,11 +130,13 @@ def expansion_mutation(t, num_variables, tree_height, p_full=0.5):
         t = new_tree
     return t
 
-def reduction_mutation(t, num_variables, p_constant=0.5):
+def reduction_mutation(t, num_variables, p_constant=0.0):
     t = t.copy()
     # Get function nodes
     function_nodes = []
     t.get_function_nodes(function_nodes)
+    if len(function_nodes) == 0: # Can not reduce
+        return t
     # Choose a node randomly
     random_node = function_nodes[random.randrange(len(function_nodes))][0]
     # Create a new terminal node
@@ -159,3 +164,24 @@ def mutate(t, num_variables, tree_height):
     elif mutation_type == 2:
         mutated_t = reduction_mutation(t, num_variables)
     return mutated_t
+
+###### Selection ######
+
+def k_tounament(population, fitness, k):
+    # Select a k-size random sample from the population
+    indices = random.sample(list(range(len(population))), k)
+    best_fitness = 0.0
+    best_item = None
+    for i in indices:
+        if fitness[i] > best_fitness:
+            best_fitness = fitness[i]
+            best_item = population[i]
+    return best_item, best_fitness
+
+###### Fitness ######
+
+def compute_fitness(tree, X, y, num_classes):
+    metric = Metric(tree)
+    clusters = cluster_data(X, num_classes, metric)
+    tree_fitness = compute_fmi(num_classes, clusters, y) # Fitness is given by FMI score
+    return tree_fitness
