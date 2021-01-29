@@ -39,7 +39,7 @@ def initialize_population(population_size, tree_height, num_variables):
     
     for height in range(1, tree_height+1):
         for _ in range(0, trees_per_height//2):
-            tree = init_tree_full(height, num_variables)
+            tree = init_tree_grow(height, num_variables)
             population.append(tree)
         for _ in range(trees_per_height//2, trees_per_height):
             tree = init_tree_full(height, num_variables)
@@ -51,4 +51,3 @@ def initialize_population(population_size, tree_height, num_variables):
             population.append(tree)
 
     return population
-

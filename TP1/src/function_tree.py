@@ -23,3 +23,22 @@ class Tree:
             return self.node_value(lvalue, rvalue)
         else:
             raise ValueError()
+
+    def height(self):
+        if self.node_type == CONSTANT_NODE or self.node_type == VAR_NODE:
+            return 0
+        else:
+            return max(1+self.lchild.height(), 1+self.rchild.height())
+
+    def tostring(self, level):
+        rep = '\t'*level
+        if self.node_type == FUNCTION_NODE:
+            rep += str(self.node_value)+"\n"
+            rep += self.lchild.tostring(level+1)
+            rep += self.rchild.tostring(level+1)
+        else:
+            if self.node_type == VAR_NODE:
+                rep += "var"
+            rep += str(self.node_value)+"\n"
+        return rep
+

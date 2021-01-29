@@ -1,17 +1,33 @@
 """ Collection of functions and constant generators """
 import random
 
-def sum_f(a, b):
-    return a+b
+class sum_f:
+    def __call__(self, a, b):
+        return a+b
+    
+    def __str__(self):
+        return "SUM"
 
-def sub_f(a, b):
-    return a-b
+class sub_f:
+    def __call__(self, a, b):
+        return a-b
+    
+    def __str__(self):
+        return "SUB"
 
-def mul_f(a, b):
-    return a*b
+class mul_f:
+    def __call__(self, a, b):
+        return a*b
+    
+    def __str__(self):
+        return "MUL"
 
-def div_f(a, b):
-    return 0 if b == 0 else float(a)/b
+class div_f:
+    def __call__(self, a, b):
+        return 0 if b == 0 else float(a)/b
+    
+    def __str__(self):
+        return "DIV"
 
 def random_real():
     return random.uniform(-1, 1)
@@ -19,7 +35,7 @@ def random_real():
 def random_variable_index(num_variables):
     return random.randrange(num_variables)
 
-FUNCTIONS = [sum_f, sub_f, mul_f, div_f]
+FUNCTIONS = [sum_f(), sub_f(), mul_f(), div_f()]
 CONSTANTS = [random_real]
 VARIABLES = [random_variable_index]
 
