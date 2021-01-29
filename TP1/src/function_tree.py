@@ -67,3 +67,16 @@ class Tree:
             cp.set_left_child(self.lchild.copy())
             cp.set_right_child(self.rchild.copy())
         return cp
+
+    def get_terminal_nodes(self, nodes, level=0):
+        if self.node_type == FUNCTION_NODE:
+            self.lchild.get_terminal_nodes(nodes, level + 1)
+            self.rchild.get_terminal_nodes(nodes, level + 1)
+        else:
+            nodes.append((self, level))
+
+    def get_function_nodes(self, nodes, level=0):
+        if self.node_type == FUNCTION_NODE:
+            nodes.append((self, level))
+            self.lchild.get_function_nodes(nodes, level + 1)
+            self.rchild.get_function_nodes(nodes, level + 1)

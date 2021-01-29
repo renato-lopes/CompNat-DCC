@@ -3,6 +3,8 @@ import random
 from function_tree import FUNCTION_NODE, CONSTANT_NODE, VAR_NODE, LEFT_CHILD, RIGHT_CHILD, Tree
 from symbols import get_random_function, get_random_constant, get_random_variable
 
+###### Initialization ######
+
 def init_tree_full(height, num_variables, p_constant=0.5):
     if height > 0:
         root = Tree(FUNCTION_NODE, get_random_function()) # Internal nodes are only function nodes
@@ -52,6 +54,8 @@ def initialize_population(population_size, tree_height, num_variables):
 
     return population
 
+###### Genetic Operators ######
+
 def crossover(t1, t2):
     t1 = t1.copy()
     t2 = t2.copy()
@@ -81,3 +85,77 @@ def crossover(t1, t2):
         else:
             p_t1[0].rchild = n_t2
     return t1, t2
+
+def point_mutation(t, num_variables):
+    t = t.copy()
+    # Get tree nodes
+    all_nodes = []
+    t.get_function_nodes(all_nodes)
+    t.get_terminal_nodes(all_nodes)
+    # Choose a node randomly
+    random_node = all_nodes[random.randrange(len(all_nodes))][0]
+    # Change node value
+    if random_node.node_type == FUNCTION_NODE:
+        random_node.node_value = get_random_function()
+    elif random_node.node_type == CONSTANT_NODE:
+        random_node.node_value = get_random_constant()
+    elif random_node.node_type == VAR_NODE:
+        random_node.node_value = get_random_variable(num_variables)
+    else:
+        raise ValueError()
+    return t
+
+def expansion_mutation(t, num_variables, tree_height, p_full=0.5):
+    t = t.copy()
+    # Get terminal nodes
+    terminal_nodes = []
+    t.get_terminal_nodes(terminal_nodes)
+    # Choose a node randomly
+    random_node, node_level = terminal_nodes[random.randrange(len(terminal_nodes))]
+    # Create a random subtree
+    if random.random() < p_full:
+        new_tree = init_tree_full(tree_height-node_level, num_variables)
+    else:
+        new_tree = init_tree_grow(tree_height-node_level, num_variables)
+    # Add new subtree
+    if random_node.parent is not None:
+        if random_node.parent[1] == LEFT_CHILD:
+           random_node.parent[0].set_left_child(new_tree)
+        else:
+           random_node.parent[0].set_right_child(new_tree)
+    else:
+        t = new_tree
+    return t
+
+def reduction_mutation(t, num_variables, p_constant=0.5):
+    t = t.copy()
+    # Get function nodes
+    function_nodes = []
+    t.get_function_nodes(function_nodes)
+    # Choose a node randomly
+    random_node = function_nodes[random.randrange(len(function_nodes))][0]
+    # Create a new terminal node
+    if random.random() < 0.5:
+        new_node = Tree(CONSTANT_NODE, get_random_constant())
+    else:
+        new_node = Tree(VAR_NODE, get_random_variable(num_variables))
+    # Change old node
+    if random_node.parent is not None:
+        if random_node.parent[1] == LEFT_CHILD:
+           random_node.parent[0].set_left_child(new_node)
+        else:
+           random_node.parent[0].set_right_child(new_node)
+    else:
+        t = new_node
+    return t
+
+def mutate(t, num_variables, tree_height):
+    # Mutate random tree using point, expansion and reduction mutations
+    mutation_type = random.randrange(3)
+    if mutation_type == 0:
+        mutated_t = point_mutation(t, num_variables)
+    elif mutation_type == 1:
+        mutated_t = expansion_mutation(t, num_variables, tree_height)
+    elif mutation_type == 2:
+        mutated_t = reduction_mutation(t, num_variables)
+    return mutated_t
