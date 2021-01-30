@@ -49,8 +49,10 @@ def main():
     history['max_fitness'] = []
     history['avg_fitness'] = []
     history['min_fitness'] = []
-    history['children_better_than_parents'] = []
-    history['children_worse_than_parents'] = []
+    history['children_better_crossover'] = []
+    history['children_worse_crossover'] = []
+    history['children_better_mutation'] = []
+    history['children_worse_mutation'] = []
 
     # Initialize population with random solutions (Ramped half-and-half)
     population = initialize_population(args.population_size, args.function_tree_size, num_variables)
@@ -65,18 +67,20 @@ def main():
     for generation in range(args.generations):
         children = []
         fitness_children = []
-        children_better_than_parents = 0
-        children_worse_than_parents = 0
+        children_better_crossover = 0
+        children_worse_crossover = 0
+        children_better_mutation = 0
+        children_worse_mutation = 0
         # Generate Children
         while len(children) < args.population_size:
-            # Parent Selection
-            p1, fitness_p1 = k_tounament(population, fitness_population, args.tournament_k)
-            p2, fitness_p2 = k_tounament(population, fitness_population, args.tournament_k)
-
-            avg_parent_fitness = (fitness_p1 + fitness_p2)/2
-            
             # Crossover
             if random.random() < args.crossover_prob:
+                # Parent Selection
+                p1, fitness_p1 = k_tounament(population, fitness_population, args.tournament_k)
+                p2, fitness_p2 = k_tounament(population, fitness_population, args.tournament_k)
+
+                avg_parent_fitness = (fitness_p1 + fitness_p2)/2
+            
                 c1, c2 = crossover(p1, p2)
 
                 # Calculate children fitness
@@ -84,26 +88,35 @@ def main():
                 fitness_c2 = compute_fitness(c2, train_X, train_y, num_classes)
 
                 if fitness_c1 < avg_parent_fitness:
-                    children_worse_than_parents += 1
+                    children_worse_crossover += 1
                 else:
-                    children_better_than_parents += 1
+                    children_better_crossover += 1
                 if fitness_c2 < avg_parent_fitness:
-                    children_worse_than_parents += 1
+                    children_worse_crossover += 1
                 else:
-                    children_better_than_parents += 1
+                    children_better_crossover += 1
 
                 children.append(c1)
                 children.append(c2)
                 fitness_children.append(fitness_c1)
                 fitness_children.append(fitness_c2)
-        
-        # Mutation (mutate children)
-        for i, child in enumerate(children):
+            
+            # Mutation
             if random.random() < args.mutation_prob:
-                child = mutate(child, num_variables, args.function_tree_size)
+                # Parent Selection
+                p, fitness_p = k_tounament(population, fitness_population, args.tournament_k)
+                
+                child = mutate(p, num_variables, args.function_tree_size)
+                
                 fitness_child = compute_fitness(child, train_X, train_y, num_classes)
-                children[i] = child
-                fitness_children[i] = fitness_child
+
+                if fitness_child < fitness_p:
+                    children_worse_mutation += 1
+                else:
+                    children_better_mutation += 1
+                
+                children.append(child)
+                fitness_children.append(fitness_child)
         
         # Update population
         if args.elitism:
@@ -124,8 +137,10 @@ def main():
         history['max_fitness'].append(max_fitness)
         history['avg_fitness'].append(avg_fitness)
         history['min_fitness'].append(min_fitness)
-        history['children_better_than_parents'].append(children_better_than_parents)
-        history['children_worse_than_parents'].append(children_worse_than_parents)
+        history['children_better_crossover'].append(children_better_crossover)
+        history['children_worse_crossover'].append(children_worse_crossover)
+        history['children_better_mutation'].append(children_better_mutation)
+        history['children_worse_mutation'].append(children_worse_mutation)
 
         print(f"Generation {generation+1}/{args.generations}: max_fitness={max_fitness:.4f} avg_fitness={avg_fitness:.4f} min_fitness={min_fitness:.4f}")
 
