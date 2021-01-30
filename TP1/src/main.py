@@ -4,7 +4,7 @@ import argparse
 import random
 import numpy as np
 
-from data import read_csv, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
+from data import read_csv, normalize_data, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
 from genetics import initialize_population, crossover, mutate, k_tounament, compute_fitness
 
 def main():
@@ -41,6 +41,10 @@ def main():
         
         test_y = test_data['glass_type']
         test_X = test_data.drop(['glass_type'], axis=1)
+
+    # Normalize data
+    train_X = normalize_data(train_X)
+    test_X = normalize_data(test_X)
 
     num_classes = len(train_y.unique())
     num_variables = train_X.shape[1]
