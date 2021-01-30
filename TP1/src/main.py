@@ -226,9 +226,23 @@ def main():
 
     with open(os.path.join(args.output_path, "global_history.pickle"), 'wb') as f:
         pickle.dump(global_history, f)
+    
+    # Visualize results
+    plot_graphs(global_history, f"{args.dataset} - pop_size:{args.population_size}, p_c:{args.crossover_prob:.4f}, p_m:{args.mutation_prob:.4f}, k:{args.tournament_k} {'- Elitism' if args.elitism else ''}", args.output_path)
 
-    plot_graphs(global_history, f"{args.dataset} - pop_size:{args.population_size}, p_c:{args.crossover_prob:.2f}, p_m:{args.mutation_prob:.2f}, k:{args.tournament_k} {'- Elitism' if args.elitism else ''}", args.output_path)
-
+    # Save results
+    with open(os.path.join(args.output_path, "log.txt"), "w") as log_file:
+        best_fitness_avg, best_fitness_std = np.average(best_fitness_global), np.std(best_fitness_global)
+        best_fitness_test_avg, best_fitness_test_std = np.average(best_fitness_test_global), np.std(best_fitness_test_global)
+        log_file.write(f"population_size: {args.population_size}\n")
+        log_file.write(f"generations: {args.generations}\n")
+        log_file.write(f"function_tree_size: {args.function_tree_size}\n")
+        log_file.write(f"crossover_prob: {args.crossover_prob:.4f}\n")
+        log_file.write(f"mutation_prob: {args.mutation_prob:.4f}\n")
+        log_file.write(f"tournament_k: {args.tournament_k}\n")
+        log_file.write(f"elitism: {args.elitism}\n")
+        log_file.write(f"Best fitness train: {best_fitness_avg:.4f} : {best_fitness_std:.4f}\n")
+        log_file.write(f"Best fitness test: {best_fitness_test_avg:.4f} : {best_fitness_test_std:.4f}\n")
 
 if __name__ == '__main__':
     main()
