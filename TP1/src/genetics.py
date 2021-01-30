@@ -8,7 +8,7 @@ MAX_FITNESS=999999
 
 ###### Initialization ######
 
-def init_tree_full(height, num_variables, p_constant=0.0):
+def init_tree_full(height, num_variables, p_constant=0.3):
     if height > 0:
         root = Tree(FUNCTION_NODE, get_random_function()) # Internal nodes are only function nodes
         root.set_left_child(init_tree_full(height-1, num_variables, p_constant))
@@ -20,7 +20,7 @@ def init_tree_full(height, num_variables, p_constant=0.0):
             root = Tree(VAR_NODE, get_random_variable(num_variables))
     return root
 
-def init_tree_grow(height, num_variables, p_function=0.5, p_constant=0.0):
+def init_tree_grow(height, num_variables, p_function=0.5, p_constant=0.3):
     if height > 0:
         if random.random() < p_function: # Choose between function or terminal
             root = Tree(FUNCTION_NODE, get_random_function())
@@ -130,7 +130,7 @@ def expansion_mutation(t, num_variables, tree_height, p_full=0.5):
         t = new_tree
     return t
 
-def reduction_mutation(t, num_variables, p_constant=0.0):
+def reduction_mutation(t, num_variables, p_constant=0.3):
     t = t.copy()
     # Get function nodes
     function_nodes = []

@@ -3,6 +3,7 @@ import pickle
 import argparse
 import random
 import numpy as np
+import json
 
 from data import read_csv, normalize_data, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
 from genetics import initialize_population, crossover, mutate, k_tounament, compute_fitness
@@ -147,6 +148,18 @@ def main():
         history['children_worse_mutation'].append(children_worse_mutation)
 
         print(f"Generation {generation+1}/{args.generations}: max_fitness={max_fitness:.4f} avg_fitness={avg_fitness:.4f} min_fitness={min_fitness:.4f}")
+    
+    # Get best found solution
+    best_solution_i = np.argmax(fitness_population)
+    best_solution = population[best_solution_i]
+    best_fitness = fitness_population[best_solution_i]
+
+    # Evaluate best solution on test data
+    best_fitness_test = compute_fitness(best_solution, test_X, test_y, num_classes)
+
+    # Write results
+    print(f"Best fitness train: {best_fitness:.4f}")
+    print(f"Best fitness test: {best_fitness_test:.4f}")
 
     with open(os.path.join(args.output_path, f"history.pickle"), 'wb') as f:
         pickle.dump(history, f)
