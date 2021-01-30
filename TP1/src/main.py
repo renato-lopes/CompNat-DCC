@@ -4,62 +4,15 @@ import argparse
 import random
 import numpy as np
 import json
+from multiprocessing import Process, Queue, cpu_count
 
 from data import read_csv, normalize_data, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
 from genetics import initialize_population, crossover, mutate, k_tounament, compute_fitness
 from visualization import plot_graphs
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, required=True, choices=[BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET], help="Dataset name")
-    parser.add_argument('--train_csv_path', type=str, required=True, help="Path to csv file containing training data")
-    parser.add_argument('--test_csv_path', type=str, required=True, help="Path to csv file containing test data")
-    parser.add_argument('--output_path', type=str, default="out/", help="Path to save output")
-    parser.add_argument('--trials', type=int, default=10, help="Number of times to execute the algorithm")
-    parser.add_argument('--population_size', type=int, default=100, help="Amount of functions in the population")
-    parser.add_argument('--generations', type=int, default=100, help="Number of generations to execute")
-    parser.add_argument('--function_tree_size', type=int, default=7, help="Maximum height of each function tree")
-    parser.add_argument('--crossover_prob', type=float, default=0.9, help="Probability associated with the crossover operator")
-    parser.add_argument('--mutation_prob', type=float, default=0.05, help="Probability associated with the mutation operator")
-    parser.add_argument('--tournament_k', type=int, default=5, help="Number of solutions selected for each tournament during selection stage")
-    parser.add_argument('--elitism', action='store_true', help="Use elitism")
-    args = parser.parse_args()
-
-    if not os.path.exists(args.output_path):
-        os.mkdir(args.output_path)
-
-    # Read train and test data
-    train_data = read_csv(args.train_csv_path)
-    test_data = read_csv(args.test_csv_path)
-
-    if args.dataset == BREAST_CANCER_COIMBRA_DATASET:
-        train_y = train_data['Classification']
-        train_X = train_data.drop(['Classification'], axis=1)
-        
-        test_y = test_data['Classification']
-        test_X = test_data.drop(['Classification'], axis=1)
-    elif args.dataset == GLASS_DATASET:
-        train_y = train_data['glass_type']
-        train_X = train_data.drop(['glass_type'], axis=1)
-        
-        test_y = test_data['glass_type']
-        test_X = test_data.drop(['glass_type'], axis=1)
-
-    # Normalize data
-    train_X = normalize_data(train_X)
-    test_X = normalize_data(test_X)
-
-    num_classes = len(train_y.unique())
-    num_variables = train_X.shape[1]
-
-    global_history = {} # History with statistics for all trials
-    best_fitness_global = []
-    best_fitness_test_global = []
-
-    # Execute the GP
-    for trial in range(1, args.trials+1):
-        print(f"*** Trial {trial} of {args.trials} ***")
-
+def execute_trials(trials, global_history, best_fitness_global, best_fitness_test_global, num_variables, num_classes, train_X, train_y, test_X, test_y, args, queue=None):
+    for trial in trials:
+        print(f"*** Starting trial {trial} of {args.trials} ***")
         # Create output dir for trial
         if not os.path.exists(os.path.join(args.output_path, str(trial))):
             os.mkdir(os.path.join(args.output_path, str(trial)))
@@ -76,8 +29,6 @@ def main():
         history['children_worse_crossover'] = []
         history['children_better_mutation'] = []
         history['children_worse_mutation'] = []
-
-        global_history[trial] = history
 
         # Initialize population with random solutions (Ramped half-and-half)
         population = initialize_population(args.population_size, args.function_tree_size, num_variables)
@@ -167,7 +118,6 @@ def main():
             history['children_better_mutation'].append(children_better_mutation)
             history['children_worse_mutation'].append(children_worse_mutation)
 
-            print(f"Generation {generation+1}/{args.generations}: max_fitness={max_fitness:.4f} avg_fitness={avg_fitness:.4f} min_fitness={min_fitness:.4f}")
             log_file.write(f"Generation {generation+1}/{args.generations}: max_fitness={max_fitness:.4f} avg_fitness={avg_fitness:.4f} min_fitness={min_fitness:.4f}\n")
         
         # Get best found solution
@@ -179,18 +129,100 @@ def main():
         best_fitness_test = compute_fitness(best_solution, test_X, test_y, num_classes)
 
         # Write results
-        print(f"Best fitness train: {best_fitness:.4f}")
-        print(f"Best fitness test: {best_fitness_test:.4f}")
         log_file.write(f"Best fitness train: {best_fitness:.4f}\n")
         log_file.write(f"Best fitness test: {best_fitness_test:.4f}\n")
 
-        best_fitness_global.append(best_fitness)
-        best_fitness_test_global.append(best_fitness_test)
+        if args.multiprocessing:
+            queue.put((trial, best_fitness, best_fitness_test, history))
+        else:
+            best_fitness_global.append(best_fitness)
+            best_fitness_test_global.append(best_fitness_test)
+            global_history[trial] = history
 
         with open(os.path.join(args.output_path, str(trial), "history.pickle"), 'wb') as f:
             pickle.dump(history, f)
         
         log_file.close()
+        print(f"*** Finished trial {trial} of {args.trials} ***")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, required=True, choices=[BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET], help="Dataset name")
+    parser.add_argument('--train_csv_path', type=str, required=True, help="Path to csv file containing training data")
+    parser.add_argument('--test_csv_path', type=str, required=True, help="Path to csv file containing test data")
+    parser.add_argument('--output_path', type=str, default="out/", help="Path to save output")
+    parser.add_argument('--trials', type=int, default=10, help="Number of times to execute the algorithm")
+    parser.add_argument('--population_size', type=int, default=100, help="Amount of functions in the population")
+    parser.add_argument('--generations', type=int, default=100, help="Number of generations to execute")
+    parser.add_argument('--function_tree_size', type=int, default=7, help="Maximum height of each function tree")
+    parser.add_argument('--crossover_prob', type=float, default=0.9, help="Probability associated with the crossover operator")
+    parser.add_argument('--mutation_prob', type=float, default=0.05, help="Probability associated with the mutation operator")
+    parser.add_argument('--tournament_k', type=int, default=5, help="Number of solutions selected for each tournament during selection stage")
+    parser.add_argument('--elitism', action='store_true', help="Use elitism")
+    parser.add_argument('--multiprocessing', action='store_true', help="Use multiprocessing")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.output_path):
+        os.mkdir(args.output_path)
+
+    # Read train and test data
+    train_data = read_csv(args.train_csv_path)
+    test_data = read_csv(args.test_csv_path)
+
+    if args.dataset == BREAST_CANCER_COIMBRA_DATASET:
+        train_y = train_data['Classification']
+        train_X = train_data.drop(['Classification'], axis=1)
+        
+        test_y = test_data['Classification']
+        test_X = test_data.drop(['Classification'], axis=1)
+    elif args.dataset == GLASS_DATASET:
+        train_y = train_data['glass_type']
+        train_X = train_data.drop(['glass_type'], axis=1)
+        
+        test_y = test_data['glass_type']
+        test_X = test_data.drop(['glass_type'], axis=1)
+
+    # Normalize data
+    train_X = normalize_data(train_X)
+    test_X = normalize_data(test_X)
+
+    num_classes = len(train_y.unique())
+    num_variables = train_X.shape[1]
+
+    global_history = {} # History with statistics for all trials
+    best_fitness_global = []
+    best_fitness_test_global = []
+
+    # Execute the GP
+    trials = list(range(1, args.trials+1, 1))
+    if args.multiprocessing:
+        n_cores = cpu_count()
+        print("CPU_COUNT", n_cores)
+        trials = np.array_split(trials, n_cores)
+
+        queue = Queue()
+
+        procs = []
+        for trial_set in trials:
+            p = Process(target=execute_trials, args=(trial_set, global_history, best_fitness_global, best_fitness_test_global, num_variables, num_classes, train_X, train_y, test_X, test_y, args, queue))
+            procs.append(p)
+            p.start()
+
+        for p in procs: # Wait for all the created process to finish
+            p.join()
+        
+        # Get results
+        best_fitness_global = [0.0]*args.trials
+        best_fitness_test_global = [0.0]*args.trials
+        
+        while not queue.empty():
+            t, t_fitness, t_fitness_test, t_history = queue.get()
+            global_history[t] = t_history
+            best_fitness_global[t-1] = t_fitness
+            best_fitness_test_global[t-1] = t_fitness_test
+            
+    else:
+        execute_trials(trials, global_history, best_fitness_global, best_fitness_test_global, num_variables, num_classes, train_X, train_y, test_X, test_y, args)
 
     with open(os.path.join(args.output_path, "global_history.pickle"), 'wb') as f:
         pickle.dump(global_history, f)
