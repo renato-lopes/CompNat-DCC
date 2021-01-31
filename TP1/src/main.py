@@ -111,7 +111,7 @@ def execute_trials(trials, global_history, best_fitness_global, best_fitness_tes
             # Equal trees in population
             equal_trees = 0
             for i in range(len(population)):
-                for j in range(i, len(population)):
+                for j in range(i+1, len(population)):
                     if i == j:
                         equal_trees += 1
             max_fitness = np.max(fitness_population)
