@@ -29,6 +29,7 @@ def execute_trials(trials, global_history, best_fitness_global, best_fitness_tes
         history['children_worse_crossover'] = []
         history['children_better_mutation'] = []
         history['children_worse_mutation'] = []
+        history['equal_trees'] = []
 
         # Initialize population with random solutions (Ramped half-and-half)
         population = initialize_population(args.population_size, args.function_tree_size, num_variables)
@@ -107,6 +108,12 @@ def execute_trials(trials, global_history, best_fitness_global, best_fitness_tes
             fitness_population = fitness_children
 
             # Compute statistics
+            # Equal trees in population
+            equal_trees = 0
+            for i in range(len(population)):
+                for j in range(i, len(population)):
+                    if i == j:
+                        equal_trees += 1
             max_fitness = np.max(fitness_population)
             avg_fitness = np.average(fitness_population)
             min_fitness = np.min(fitness_population)
@@ -117,6 +124,7 @@ def execute_trials(trials, global_history, best_fitness_global, best_fitness_tes
             history['children_worse_crossover'].append(children_worse_crossover)
             history['children_better_mutation'].append(children_better_mutation)
             history['children_worse_mutation'].append(children_worse_mutation)
+            history['equal_trees'].append(equal_trees)
 
             log_file.write(f"Generation {generation+1}/{args.generations}: max_fitness={max_fitness:.4f} avg_fitness={avg_fitness:.4f} min_fitness={min_fitness:.4f}\n")
         

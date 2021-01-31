@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('tableau-colorblind10')
 
-computed_stats = {'max_fitness', 'avg_fitness', 'min_fitness', 'children_better_crossover', 'children_worse_crossover', 'children_better_mutation', 'children_worse_mutation'}
+computed_stats = {'max_fitness', 'avg_fitness', 'min_fitness', 'children_better_crossover', 'children_worse_crossover', 'children_better_mutation', 'children_worse_mutation', 'equal_trees'}
 
 def get_stats_avg_std(global_history):
     data = {}
@@ -54,3 +54,13 @@ def plot_graphs(global_history, title, save_path):
     plt.savefig(os.path.join(save_path, "operators_comparison.png"))
     plt.close()
 
+    # Fitness graph
+    plt.figure(figsize=(8, 4))
+    plt.plot(stats["equal_trees"][0], '-', label='Equal Trees')
+    plt.legend()
+    plt.xlabel('Generation')
+    plt.ylabel('Number of Trees')
+    plt.xticks(X)
+    plt.title(f'Equal Trees in Population per Generation\n{title}')
+    plt.savefig(os.path.join(save_path, "equal.png"))
+    plt.close()

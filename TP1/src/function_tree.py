@@ -80,3 +80,15 @@ class Tree:
             nodes.append((self, level))
             self.lchild.get_function_nodes(nodes, level + 1)
             self.rchild.get_function_nodes(nodes, level + 1)
+
+    def __eq__(self, tree):
+        if self.node_type != tree.node_type:
+            return False
+        if self.node_type == FUNCTION_NODE:
+            if str(self.node_value) != str(tree.node_value):
+                return False
+            if str(self.node_value) in {'SUM', 'MUL'}: # Commutative operations
+                return ((self.lchild == tree.lchild) and (self.rchild == tree.rchild)) or ((self.lchild == tree.rchild) and (self.rchild == tree.lchild))
+            return (self.lchild == tree.lchild) and (self.rchild == tree.rchild)
+        else:
+            return self.node_value == tree.node_value
