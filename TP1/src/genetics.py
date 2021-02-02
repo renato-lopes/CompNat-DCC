@@ -4,8 +4,6 @@ from function_tree import FUNCTION_NODE, CONSTANT_NODE, VAR_NODE, LEFT_CHILD, RI
 from symbols import get_random_function, get_random_constant, get_random_variable
 from clustering import Metric, cluster_data, compute_fmi
 
-MAX_FITNESS=999999
-
 ###### Initialization ######
 
 def init_tree_full(height, num_variables, p_constant=0.3):

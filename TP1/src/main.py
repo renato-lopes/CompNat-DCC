@@ -4,13 +4,13 @@ import argparse
 import random
 import numpy as np
 import json
-from multiprocessing import Process, Queue, cpu_count
+from multiprocessing import Process, cpu_count
 
 from data import read_csv, normalize_data, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
 from genetics import initialize_population, crossover, mutate, k_tounament, compute_fitness
 from visualization import plot_graphs
 
-def execute_trials(trials, global_history, best_fitness_global, best_fitness_test_global, num_variables, num_classes, train_X, train_y, test_X, test_y, args, queue=None):
+def execute_trials(trials, num_variables, num_classes, train_X, train_y, test_X, test_y, args, global_history=None, best_fitness_global=None, best_fitness_test_global=None):
     for trial in trials:
         print(f"*** Starting trial {trial} of {args.trials} ***")
         # Create output dir for trial
@@ -140,15 +140,19 @@ def execute_trials(trials, global_history, best_fitness_global, best_fitness_tes
         log_file.write(f"Best fitness train: {best_fitness:.4f}\n")
         log_file.write(f"Best fitness test: {best_fitness_test:.4f}\n")
 
-        if args.multiprocessing:
-            queue.put((trial, best_fitness, best_fitness_test, history))
-        else:
+        if not args.multiprocessing:
             best_fitness_global.append(best_fitness)
             best_fitness_test_global.append(best_fitness_test)
             global_history[trial] = history
 
-        with open(os.path.join(args.output_path, str(trial), "history.pickle"), 'wb') as f:
-            pickle.dump(history, f)
+        with open(os.path.join(args.output_path, str(trial), "results.pickle"), 'wb') as f:
+            results = {
+                "history": history,
+                "best_fitness": best_fitness,
+                "best_fitness_test": best_fitness_test,
+                "best_solution": best_solution
+            }
+            pickle.dump(results, f)
         
         log_file.close()
         print(f"*** Finished trial {trial} of {args.trials} ***")
@@ -205,32 +209,26 @@ def main():
     trials = list(range(1, args.trials+1, 1))
     if args.multiprocessing:
         n_cores = cpu_count()
-        print("CPU_COUNT", n_cores)
-        trials = np.array_split(trials, n_cores)
-
-        queue = Queue()
+        trials = [x for x in np.array_split(trials, n_cores) if x.size > 0]
 
         procs = []
         for trial_set in trials:
-            p = Process(target=execute_trials, args=(trial_set, global_history, best_fitness_global, best_fitness_test_global, num_variables, num_classes, train_X, train_y, test_X, test_y, args, queue))
+            p = Process(target=execute_trials, args=(trial_set, num_variables, num_classes, train_X, train_y, test_X, test_y, args))
             procs.append(p)
             p.start()
 
         for p in procs: # Wait for all the created process to finish
             p.join()
         
-        # Get results
-        best_fitness_global = [0.0]*args.trials
-        best_fitness_test_global = [0.0]*args.trials
-        
-        while not queue.empty():
-            t, t_fitness, t_fitness_test, t_history = queue.get()
-            global_history[t] = t_history
-            best_fitness_global[t-1] = t_fitness
-            best_fitness_test_global[t-1] = t_fitness_test
-            
+        # Get results from trials
+        for trial in range(1, args.trials+1, 1):
+            with open(os.path.join(args.output_path, str(trial), "results.pickle"), "rb") as f:
+                results = pickle.load(f)
+                global_history[trial] = results["history"]
+                best_fitness_global.append(results['best_fitness'])
+                best_fitness_test_global.append(results['best_fitness_test'])
     else:
-        execute_trials(trials, global_history, best_fitness_global, best_fitness_test_global, num_variables, num_classes, train_X, train_y, test_X, test_y, args)
+        execute_trials(trials, num_variables, num_classes, train_X, train_y, test_X, test_y, args, global_history, best_fitness_global, best_fitness_test_global)
 
     with open(os.path.join(args.output_path, "global_history.pickle"), 'wb') as f:
         pickle.dump(global_history, f)
