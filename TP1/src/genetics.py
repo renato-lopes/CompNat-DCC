@@ -165,7 +165,7 @@ def mutate(t, num_variables, tree_height):
 
 ###### Selection ######
 
-def k_tounament(population, fitness, k):
+def k_tournament(population, fitness, k):
     # Select a k-size random sample from the population
     indices = random.sample(list(range(len(population))), k)
     best_fitness = 0.0

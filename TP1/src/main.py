@@ -7,7 +7,7 @@ import json
 from multiprocessing import Process, cpu_count
 
 from data import read_csv, normalize_data, BREAST_CANCER_COIMBRA_DATASET, GLASS_DATASET
-from genetics import initialize_population, crossover, mutate, k_tounament, compute_fitness
+from genetics import initialize_population, crossover, mutate, k_tournament, compute_fitness
 from visualization import plot_graphs
 
 def execute_trials(trials, num_variables, num_classes, train_X, train_y, test_X, test_y, args, global_history=None, best_fitness_global=None, best_fitness_test_global=None):
@@ -53,8 +53,8 @@ def execute_trials(trials, num_variables, num_classes, train_X, train_y, test_X,
                 # Crossover
                 if random.random() < args.crossover_prob:
                     # Parent Selection
-                    p1, fitness_p1 = k_tounament(population, fitness_population, args.tournament_k)
-                    p2, fitness_p2 = k_tounament(population, fitness_population, args.tournament_k)
+                    p1, fitness_p1 = k_tournament(population, fitness_population, args.tournament_k)
+                    p2, fitness_p2 = k_tournament(population, fitness_population, args.tournament_k)
 
                     avg_parent_fitness = (fitness_p1 + fitness_p2)/2
                 
@@ -81,7 +81,7 @@ def execute_trials(trials, num_variables, num_classes, train_X, train_y, test_X,
                 # Mutation
                 if random.random() < args.mutation_prob:
                     # Parent Selection
-                    p, fitness_p = k_tounament(population, fitness_population, args.tournament_k)
+                    p, fitness_p = k_tournament(population, fitness_population, args.tournament_k)
                     
                     child = mutate(p, num_variables, args.function_tree_size)
                     
