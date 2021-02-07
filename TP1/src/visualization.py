@@ -27,8 +27,11 @@ def plot_graphs(global_history, title, save_path):
     # Fitness graph
     plt.figure(figsize=(8, 4))
     plt.plot(stats["max_fitness"][0], '-', label='Max Fitness')
+    plt.fill_between(X, stats["max_fitness"][0]-stats["max_fitness"][1], stats["max_fitness"][0]+stats["max_fitness"][1], alpha=.1)
     plt.plot(stats["avg_fitness"][0], '--', label='Avg Fitness')
+    plt.fill_between(X, stats["avg_fitness"][0]-stats["avg_fitness"][1], stats["avg_fitness"][0]+stats["avg_fitness"][1], alpha=.1)
     plt.plot(stats["min_fitness"][0], '-', label='Min Fitness')
+    plt.fill_between(X, stats["min_fitness"][0]-stats["min_fitness"][1], stats["min_fitness"][0]+stats["min_fitness"][1], alpha=.1)
     plt.legend()
     plt.xlabel('Generation')
     plt.ylabel('Fitness')

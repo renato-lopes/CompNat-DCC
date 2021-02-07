@@ -199,7 +199,7 @@ def main():
     test_X = normalize_data(test_X)
 
     num_classes = len(train_y.unique())
-    num_variables = train_X.shape[1]
+    num_variables = train_X.shape[1] * 2
 
     global_history = {} # History with statistics for all trials
     best_fitness_global = []
