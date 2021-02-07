@@ -1,3 +1,5 @@
+import numpy as np
+
 from pyclustering.cluster.kmeans import kmeans
 from pyclustering.cluster.center_initializer import kmeans_plusplus_initializer
 from pyclustering.utils.metric import distance_metric, type_metric
@@ -9,7 +11,7 @@ class Metric():
         self.tree = tree
     
     def __call__(self, point1, point2):
-        all_points = point1 + point2
+        all_points = np.concatenate([point1, point2])
         return self.tree.evaluate(all_points)
 
 def cluster_data(X, k, metric):
