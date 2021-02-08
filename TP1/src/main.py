@@ -112,7 +112,7 @@ def execute_trials(trials, num_variables, num_classes, train_X, train_y, test_X,
             equal_trees = 0
             for i in range(len(population)):
                 for j in range(i+1, len(population)):
-                    if i == j:
+                    if population[i] == population[j]:
                         equal_trees += 1
             max_fitness = np.max(fitness_population)
             avg_fitness = np.average(fitness_population)
