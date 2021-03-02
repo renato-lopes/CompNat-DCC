@@ -1,5 +1,7 @@
 import numpy as np
 
+MAX_COST = 99999999
+
 def get_max_time(jobs_costs):
     return np.sum(jobs_costs)
 
@@ -14,17 +16,23 @@ def get_available_jobs(njobs, nmachines, jobs_machines, ant_machines_status, ant
             available_jobs[machine].append(job)
     return available_jobs
 
-def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, alpha=1.0, beta=1.0):
+def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pheromones_max=10.0, pheromones_min=1.0, alpha=1.0, beta=1.0, evaporation_rate=0.5):
     max_time = get_max_time(jobs_costs)
     # Create pheromone matrix
-    pheromones = np.zeros((njobs, max_time))
+    pheromones = np.ones((njobs, max_time)) * pheromones_max
+    # Initialize best solution
+    best_ant_path = None
+    best_ant_cost = MAX_COST
     # Main loop
+    history = {}
     for aco_i in range(aco_iterions):
         # Create ants representations
         ants_machines_status = np.zeros((nants, nmachines), dtype="int") # Save status of each machine, that is the amount of time until idle. If idle, value is 0
         ants_jobs_status = np.ones((nants, njobs), dtype="int") * -1 # Save the id of current operation on the job
         ants_results = np.zeros(nants, dtype="int") # Save the makespan found by each ant
-        # Build solutions
+        ants_paths = {x : [] for x in range(nants)}
+        
+        ### Build solutions ###
         for ant in range(nants):
             # Update each ant
             for t in range(max_time):
@@ -54,8 +62,27 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, alpha=
                         # Execute job
                         ants_jobs_status[ant][chosen_job] += 1
                         ants_machines_status[ant][m] = jobs_costs[chosen_job][ants_jobs_status[ant][chosen_job]]
+                        ants_paths[ant].append((t, m, chosen_job))
+            # Update best solution
+            if best_ant_path is None or ants_results[ant] < best_ant_cost:
+                best_ant_path = ants_paths[ant]
+                best_ant_cost = ants_results[ant]
 
-    print(ants_results)
+        ### Update pheromones with Max-Min ###
+        # Pheromone evaporation
+        pheromones *= (1 - evaporation_rate)
+        # Update pheromones with best result
+        for time, machine, job in best_ant_path:
+            pheromones[job][time] += (1.0 / best_ant_cost) # Update with the inverse of the cost of the best solution found so far
+        
+        history[aco_i] = {
+            "ants_results": ants_results,
+            "ants_paths": ants_paths
+        }
+
+        print(f"Iteration [{aco_i+1}/{aco_iterions}]: {ants_results}")
+    
+    return best_ant_cost, history
 
 instance = {
     "njobs": 3,
@@ -71,4 +98,4 @@ instance = {
 #     "jobs_costs": [[1], [1], [1]]
 # }
 
-aco(instance["njobs"], instance["nmachines"], instance["jobs_machines"], instance["jobs_costs"], 10, 1)
+aco(instance["njobs"], instance["nmachines"], instance["jobs_machines"], instance["jobs_costs"], 10, 100)
