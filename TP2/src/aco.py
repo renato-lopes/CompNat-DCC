@@ -25,15 +25,17 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, alpha=
         ants_jobs_status = np.ones((nants, njobs), dtype="int") * -1 # Save the id of current operation on the job
         ants_results = np.zeros(nants, dtype="int") # Save the makespan found by each ant
         # Build solutions
-        for t in range(max_time):
+        for ant in range(nants):
             # Update each ant
-            for ant in range(nants):
-                # Update machine status
+            for t in range(max_time):
+                # Update machines status
                 ants_machines_status[ant] -= 1
                 ants_machines_status[ant][ants_machines_status[ant] < 0] = 0 # Remove negative values
                 # Check if all tasks are done
                 if np.array_equal(ants_jobs_status[ant], np.array([len(x)-1 for x in jobs_machines])) and np.count_nonzero(ants_machines_status[ant]) == 0:
-                    continue
+                    # Update ant makespan
+                    ants_results[ant] = t
+                    break
                 # Select jobs to run in each machine
                 available_jobs = get_available_jobs(njobs, nmachines, jobs_machines, ants_machines_status[ant], ants_jobs_status[ant])
                 for m in range(nmachines):
@@ -52,7 +54,6 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, alpha=
                         # Execute job
                         ants_jobs_status[ant][chosen_job] += 1
                         ants_machines_status[ant][m] = jobs_costs[chosen_job][ants_jobs_status[ant][chosen_job]]
-                ants_results[ant] += 1 # Update ant makespan
 
     print(ants_results)
 
@@ -62,5 +63,12 @@ instance = {
     "jobs_machines": [[0, 1, 2], [0, 2, 1], [1, 0, 2]],
     "jobs_costs": [[3, 3, 2], [1, 5, 3], [3, 2, 3]]
 }
+
+# instance = {
+#     "njobs": 3,
+#     "nmachines": 3,
+#     "jobs_machines": [[0], [1], [2]],
+#     "jobs_costs": [[1], [1], [1]]
+# }
 
 aco(instance["njobs"], instance["nmachines"], instance["jobs_machines"], instance["jobs_costs"], 10, 1)
