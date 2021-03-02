@@ -32,7 +32,7 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, alpha=
                 ants_machines_status[ant] -= 1
                 ants_machines_status[ant][ants_machines_status[ant] < 0] = 0 # Remove negative values
                 # Check if all tasks are done
-                if np.array_equal(ants_jobs_status[ant], np.array([len(x) for x in jobs_machines])) and np.count_nonzero(ants_machines_status[ant]) == 0:
+                if np.array_equal(ants_jobs_status[ant], np.array([len(x)-1 for x in jobs_machines])) and np.count_nonzero(ants_machines_status[ant]) == 0:
                     continue
                 # Select jobs to run in each machine
                 available_jobs = get_available_jobs(njobs, nmachines, jobs_machines, ants_machines_status[ant], ants_jobs_status[ant])
