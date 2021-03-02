@@ -6,10 +6,10 @@ def get_max_time(jobs_costs):
 def get_available_jobs(njobs, nmachines, jobs_machines, ant_machines_status, ant_jobs_status):
     available_jobs = {x : [] for x in range(nmachines)} # Save available jobs to each machine
     for job in range(njobs):
-        cur_operation = ant_jobs_status[job]+1
-        if cur_operation >= len(jobs_machines[job]):
-            continue # Job is already completed
-        machine = jobs_machines[job][cur_operation]
+        cur_operation = ant_jobs_status[job]
+        if ant_machines_status[jobs_machines[job][cur_operation]] != 0 or cur_operation+1 >= len(jobs_machines[job]):
+            continue # Current operation is not done or Job is already completed
+        machine = jobs_machines[job][cur_operation+1]
         if ant_machines_status[machine] == 0: # If required machine is available
             available_jobs[machine].append(job)
     return available_jobs
