@@ -83,19 +83,3 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pherom
         print(f"Iteration [{aco_i+1}/{aco_iterions}]: {ants_results}")
     
     return best_ant_cost, history
-
-instance = {
-    "njobs": 3,
-    "nmachines": 3,
-    "jobs_machines": [[0, 1, 2], [0, 2, 1], [1, 0, 2]],
-    "jobs_costs": [[3, 3, 2], [1, 5, 3], [3, 2, 3]]
-}
-
-# instance = {
-#     "njobs": 3,
-#     "nmachines": 3,
-#     "jobs_machines": [[0], [1], [2]],
-#     "jobs_costs": [[1], [1], [1]]
-# }
-
-aco(instance["njobs"], instance["nmachines"], instance["jobs_machines"], instance["jobs_costs"], 10, 100)
