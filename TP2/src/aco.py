@@ -16,7 +16,7 @@ def get_available_jobs(njobs, nmachines, jobs_machines, ant_machines_status, ant
             available_jobs[machine].append(job)
     return available_jobs
 
-def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pheromones_max=10.0, pheromones_min=1.0, alpha=1.0, beta=1.0, evaporation_rate=0.5):
+def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pheromones_max, pheromones_min, alpha, beta, evaporation_rate):
     max_time = get_max_time(jobs_costs)
     # Create pheromone matrix
     pheromones = np.ones((njobs, max_time)) * pheromones_max
@@ -54,7 +54,7 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pherom
                             j_operation = ants_jobs_status[ant][j]+1
                             desirability = 1.0/jobs_costs[j][j_operation] # Desirability is given by 1/cost of current operation
                             pheromone = pheromones[j][t] # Get pheromone associated with job at the current time
-                            probs.append((alpha*pheromone) + beta*desirability)
+                            probs.append((pheromone**alpha) + (desirability**beta))
                         # Normalize probs into range [0, 1]
                         probs = np.array(probs)/np.sum(probs)
                         # Choose which job to run in this machine, based on probabilities
