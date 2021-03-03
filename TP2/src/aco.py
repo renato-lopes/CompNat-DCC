@@ -82,6 +82,6 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pherom
             "ants_paths": ants_paths
         }
 
-        print(f"Iteration [{aco_i+1}/{aco_iterions}]: {ants_results}")
+        print(f"Iteration [{aco_i+1}/{aco_iterions}]: best_result={np.min(ants_results)}")
     
     return best_ant_cost, history

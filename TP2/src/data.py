@@ -1,5 +1,6 @@
 
 INSTANCES = ("ft06", "la01", "la29", "la40")
+BEST_MAKESPAN = {"ft06": 55, "la01": 666, "la29": 1157, "la40": 1222}
 
 def get_instances(filepath):
     instances_data = {}
