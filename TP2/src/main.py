@@ -2,10 +2,10 @@ import os
 import argparse
 import numpy as np
 
-from data import get_instances, INSTANCES
+from data import get_instances, INSTANCES, OPTIMAL_MAKESPAN
 from aco import aco
 
-from visualization import plot_graph
+from visualization import plot_graph, get_avg_std
 
 def main():
     parser = argparse.ArgumentParser()
@@ -38,7 +38,23 @@ def main():
         trials_best_result.append(best_result)
         trials_history.append(history)
     
-    plot_graph(trials_history, f"instace:{args.instance}, trials:{args.trials}, ants:{args.ants}, pheromones_max:{args.pheromones_max}, pheromones_min:{args.pheromones_min}, evaporation_rate:{args.evaporation_rate}", args.output_dir)
+    plot_graph(trials_history, f"instance:{args.instance}, trials:{args.trials}, ants:{args.ants}, pheromones_max:{args.pheromones_max}, pheromones_min:{args.pheromones_min}, evaporation_rate:{args.evaporation_rate}", args.output_dir)
+
+    trials_best_result = np.array(trials_best_result)
+    best_solution_avg, best_solutions_std = get_avg_std(trials_best_result)
+    diff_avg, diff_std = get_avg_std(trials_best_result - OPTIMAL_MAKESPAN[args.instance])
+    trials_with_optimal = np.sum(trials_best_result == OPTIMAL_MAKESPAN[args.instance])
+
+    print(f"best_result: {best_solution_avg:.4f} {best_solutions_std:.4f}")
+    print(f"diff_from_optimal: {diff_avg:.4f} {diff_std:.4f}")
+    print(f"optimal_found: {trials_with_optimal}")
+
+    with open(os.path.join(args.output_dir, "results.txt"), "w") as f:
+        f.write(f"instance: {args.instance}\ntrials: {args.trials}\nants: {args.ants}\npheromones_max: {args.pheromones_max}\npheromones_min: {args.pheromones_min}\nevaporation_rate: {args.evaporation_rate}\nalpha: {args.alpha}\nbeta: {args.beta}\n")
+        f.write(f"best_result: {best_solution_avg:.4f} {best_solutions_std:.4f}\n")
+        f.write(f"diff_from_optimal: {diff_avg:.4f} {diff_std:.4f}\n")
+        f.write(f"optimal_found: {trials_with_optimal}\n")
+
 
 if __name__ == "__main__":
     main()
