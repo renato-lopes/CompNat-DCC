@@ -1,11 +1,22 @@
 import os
 import argparse
 import numpy as np
+import pickle
+from multiprocessing import Process, cpu_count
 
 from data import get_instances, INSTANCES, OPTIMAL_MAKESPAN
 from aco import aco
 
 from visualization import plot_graph, get_avg_std
+
+def execute_trials(trials, instance_data, args):
+    for trial in trials:
+        print(f"*** Started Trial [{trial+1}/{args.trials}] ***")
+        best_result, history = aco(instance_data["njobs"], instance_data["nmachines"], instance_data["jobs_machines"], instance_data["jobs_costs"],
+                                args.ants, args.iterations, args.pheromones_max, args.pheromones_min, args.alpha, args.beta, args.evaporation_rate)
+        print(f"*** Finished Trial [{trial+1}/{args.trials}]: best_result={best_result} ***")
+        with open(os.path.join(args.output_dir, f"history-trial-{trial}.pickle"), "wb") as f:
+            pickle.dump(history, f)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -20,6 +31,7 @@ def main():
     parser.add_argument('--alpha', type=float, default=1.0, help="Weight associated to the pheromone")
     parser.add_argument('--beta', type=float, default=2.0, help="Weight associated to the desirability")
     parser.add_argument('--evaporation_rate', type=float, default=0.1, help="Evaporation Rate")
+    parser.add_argument('--multiprocessing', action='store_true', help="Use multiprocessing")
     args = parser.parse_args()
 
     if not os.path.exists(args.output_dir):
@@ -27,14 +39,29 @@ def main():
 
     instance_data = get_instances(args.instances_filepath)[args.instance]
 
+    if args.multiprocessing:
+        n_cores = cpu_count()
+        trials = [x for x in np.array_split(np.arange(args.trials), n_cores) if x.size > 0]
+
+        procs = []
+        for trial_set in trials:
+            p = Process(target=execute_trials, args=(trial_set, instance_data, args))
+            procs.append(p)
+            p.start()
+
+        for p in procs: # Wait for all the created process to finish
+            p.join()
+    else:
+        execute_trials(np.arange(args.trials), instance_data, args)
+
+    # Get results
     trials_best_result = []
     trials_history = []
-    for trial in range(args.trials):
-        print(f"*** Started Trial [{trial+1}/{args.trials}] ***")
-        best_result, history = aco(instance_data["njobs"], instance_data["nmachines"], instance_data["jobs_machines"], instance_data["jobs_costs"],
-                                     args.ants, args.iterations, args.pheromones_max, args.pheromones_min, args.alpha, args.beta, args.evaporation_rate)
-        print(f"*** Finished Trial [{trial+1}/{args.trials}]: best_result={best_result} ***")
 
+    for trial in range(args.trials):
+        with open(os.path.join(args.output_dir, f"history-trial-{trial}.pickle"), "rb") as f:
+            history = pickle.load(f)
+        best_result = np.min([np.min(history[k]["ants_results"]) for k in history.keys()])
         trials_best_result.append(best_result)
         trials_history.append(history)
     
