@@ -73,7 +73,7 @@ def aco(njobs, nmachines, jobs_machines, jobs_costs, nants, aco_iterions, pherom
         pheromones *= (1.0 - evaporation_rate)
         # Update pheromones with best result
         for time, machine, job in best_ant_path:
-            pheromones[job][time] += (1.0 / best_ant_cost) # Update with the inverse of the cost of the best solution found so far
+            pheromones[job][time] += (1.0 / best_ant_cost)*nants # Update with the inverse of the cost of the best solution found so far
         # Check for limits
         np.clip(pheromones, pheromones_min, pheromones_max, out=pheromones)
 

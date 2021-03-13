@@ -13,13 +13,13 @@ def main():
     parser.add_argument('--instance', type=str, default="ft06", choices=INSTANCES, help="Instance identifier")
     parser.add_argument('--output_dir', type=str, default="./out", help="Path to save results")
     parser.add_argument('--trials', type=int, default=30, help="Amount of independent executions of the algorithm")
-    parser.add_argument('--ants', type=int, default=50, help="Amount of ants")
+    parser.add_argument('--ants', type=int, default=100, help="Amount of ants")
     parser.add_argument('--iterations', type=int, default=100, help="Amount of iterations to execute")
-    parser.add_argument('--pheromones_max', type=float, default=25.0, help="Maximum value for pheromone")
-    parser.add_argument('--pheromones_min', type=float, default=5.0, help="Minimum value for pheromone")
+    parser.add_argument('--pheromones_max', type=float, default=100.0, help="Maximum value for pheromone")
+    parser.add_argument('--pheromones_min', type=float, default=1.0, help="Minimum value for pheromone")
     parser.add_argument('--alpha', type=float, default=1.0, help="Weight associated to the pheromone")
-    parser.add_argument('--beta', type=float, default=1.0, help="Weight associated to the desirability")
-    parser.add_argument('--evaporation_rate', type=float, default=0.5, help="Evaporation Rate")
+    parser.add_argument('--beta', type=float, default=2.0, help="Weight associated to the desirability")
+    parser.add_argument('--evaporation_rate', type=float, default=0.1, help="Evaporation Rate")
     args = parser.parse_args()
 
     if not os.path.exists(args.output_dir):
